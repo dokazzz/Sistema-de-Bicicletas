@@ -1,0 +1,257 @@
+from datetime import datetime
+from typing import Optional
+
+class Bicicleta:
+    """Classe que representa uma bicicleta no sistema"""
+    
+    def __init__(self, identificador: str, modelo: str, cor: str):
+        self.identificador = identificador
+        self.modelo = modelo
+        self.cor = cor
+        self.status = "disponivel"  # disponivel, alugada, manutencao
+        self.total_km = 0.0
+        self.historico_manutencoes = []
+    
+    def alugar(self) -> bool:
+        """Aluga a bicicleta se ela estiver disponível"""
+        if self.status == "disponivel":
+            self.status = "alugada"
+            print(f"✅ Bicicleta {self.identificador} alugada com sucesso!")
+            return True
+        elif self.status == "alugada":
+            print(f"❌ Bicicleta {self.identificador} já está alugada!")
+            return False
+        else:
+            print(f"❌ Bicicleta {self.identificador} está em manutenção!")
+            return False
+    
+    def devolver(self, km_rodados: float) -> bool:
+        """Devolve a bicicleta e registra os quilômetros rodados"""
+        if self.status == "alugada":
+            self.status = "disponivel"
+            self.total_km += km_rodados
+            print(f"✅ Bicicleta {self.identificador} devolvida. KM rodados: {km_rodados}")
+            print(f"📊 Total acumulado: {self.total_km} km")
+            return True
+        else:
+            print(f"❌ Bicicleta {self.identificador} não está alugada no momento!")
+            return False
+    
+    def entrar_manutencao(self) -> bool:
+        """Coloca a bicicleta em manutenção"""
+        if self.status == "disponivel":
+            self.status = "manutencao"
+            data_manutencao = datetime.now().strftime("%d/%m/%Y %H:%M")
+            self.historico_manutencoes.append(data_manutencao)
+            print(f"🔧 Bicicleta {self.identificador} entrou em manutenção")
+            return True
+        elif self.status == "alugada":
+            print(f"❌ Não é possível colocar em manutenção: bicicleta {self.identificador} está alugada!")
+            return False
+        else:
+            print(f"❌ Bicicleta {self.identificador} já está em manutenção!")
+            return False
+    
+    def sair_manutencao(self) -> bool:
+        """Retira a bicicleta da manutenção"""
+        if self.status == "manutencao":
+            self.status = "disponivel"
+            print(f"🔧 Bicicleta {self.identificador} saiu da manutenção e está disponível")
+            return True
+        else:
+            print(f"❌ Bicicleta {self.identificador} não está em manutenção!")
+            return False
+    
+    def exibir_informacoes(self):
+        """Exibe informações resumidas da bicicleta"""
+        print(f"\n🚲 BICICLETA {self.identificador}")
+        print(f"   Modelo: {self.modelo}")
+        print(f"   Cor: {self.cor}")
+        print(f"   Status: {self.status.upper()}")
+        print(f"   Total KM: {self.total_km} km")
+        if self.historico_manutencoes:
+            print(f"   Última manutenção: {self.historico_manutencoes[-1]}")
+
+
+class Usuario:
+    """Classe que representa um usuário do sistema"""
+    
+    def __init__(self, nome: str, cpf: str, idade: int):
+        self.nome = nome
+        self.cpf = cpf
+        self.idade = idade
+        self.aluguel_ativo = False
+        self.historico_alugueis = []
+        self.bicicleta_atual = None
+    
+    def pode_alugar(self) -> bool:
+        """Verifica se o usuário pode alugar uma bicicleta"""
+        if self.aluguel_ativo:
+            print(f"❌ {self.nome} já possui um aluguel ativo!")
+            return False
+        if self.idade < 18:
+            print(f"❌ {self.nome} não pode alugar (menor de 18 anos)!")
+            return False
+        return True
+    
+    def associar_emprestimo(self, bicicleta: 'Bicicleta'):
+        """Associa um empréstimo ao usuário"""
+        self.aluguel_ativo = True
+        self.bicicleta_atual = bicicleta
+        data_emprestimo = datetime.now().strftime("%d/%m/%Y %H:%M")
+        self.historico_alugueis.append({
+            'bicicleta': bicicleta.identificador,
+            'data': data_emprestimo,
+            'status': 'ativo'
+        })
+    
+    def finalizar_emprestimo(self):
+        """Finaliza o empréstimo atual"""
+        self.aluguel_ativo = False
+        if self.historico_alugueis and self.historico_alugueis[-1]['status'] == 'ativo':
+            self.historico_alugueis[-1]['status'] = 'finalizado'
+        self.bicicleta_atual = None
+    
+    def exibir_informacoes(self):
+        """Exibe informações resumidas do usuário"""
+        print(f"\n👤 USUÁRIO: {self.nome}")
+        print(f"   CPF: {self.cpf}")
+        print(f"   Idade: {self.idade} anos")
+        print(f"   Aluguel ativo: {'SIM' if self.aluguel_ativo else 'NÃO'}")
+        if self.bicicleta_atual:
+            print(f"   Bicicleta atual: {self.bicicleta_atual.identificador}")
+        print(f"   Total de aluguéis: {len(self.historico_alugueis)}")
+
+
+class Emprestimo:
+    """
+    Classe que representa um empréstimo (relação entre usuário e bicicleta)
+    Justificativa: Esta classe é necessária para gerenciar a transação completa
+    de aluguel, registrando data/hora, quilometragem e mantendo o histórico
+    de todas as operações do sistema.
+    """
+    
+    def __init__(self, usuario: Usuario, bicicleta: Bicicleta):
+        self.usuario = usuario
+        self.bicicleta = bicicleta
+        self.data_hora_inicio = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        self.data_hora_fim = None
+        self.km_inicial = bicicleta.total_km
+        self.km_final = None
+        self.ativo = True
+    
+    def finalizar(self, km_rodados: float):
+        """Finaliza o empréstimo registrando os dados finais"""
+        self.data_hora_fim = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        self.km_final = self.km_inicial + km_rodados
+        self.ativo = False
+        
+        print(f"\n📋 RESUMO DO EMPRÉSTIMO:")
+        print(f"   Usuário: {self.usuario.nome}")
+        print(f"   Bicicleta: {self.bicicleta.identificador}")
+        print(f"   Início: {self.data_hora_inicio}")
+        print(f"   Fim: {self.data_hora_fim}")
+        print(f"   KM rodados: {km_rodados}")
+    
+    def exibir_detalhes(self):
+        """Exibe detalhes completos do empréstimo"""
+        print(f"\n📄 EMPRÉSTIMO:")
+        print(f"   Usuário: {self.usuario.nome}")
+        print(f"   Bicicleta: {self.bicicleta.identificador}")
+        print(f"   Início: {self.data_hora_inicio}")
+        if not self.ativo:
+            print(f"   Fim: {self.data_hora_fim}")
+        print(f"   Status: {'ATIVO' if self.ativo else 'FINALIZADO'}")
+
+
+def main():
+    print("=" * 60)
+    print("🚴‍♂️ SISTEMA DE BICICLETAS INTELIGENTES - VERSÃO 1.0")
+    print("=" * 60)
+    
+    bicicleta1 = Bicicleta("B001", "Elétrica Speed", "Vermelha")
+    bicicleta2 = Bicicleta("B002", "Mountain Bike", "Preta")
+    bicicleta3 = Bicicleta("B003", "Dobrável Urban", "Azul")
+    
+    usuario1 = Usuario("João Silva", "123.456.789-00", 25)
+    usuario2 = Usuario("Maria Santos", "987.654.321-00", 32)
+    usuario3 = Usuario("Carlos Oliveira", "456.789.123-00", 17)
+    
+    print("\n📌 EXIBINDO INFORMAÇÕES INICIAIS:")
+    bicicleta1.exibir_informacoes()
+    bicicleta2.exibir_informacoes()
+    bicicleta3.exibir_informacoes()
+    usuario1.exibir_informacoes()
+    usuario2.exibir_informacoes()
+    usuario3.exibir_informacoes()
+    
+    print("\n" + "=" * 60)
+    print("🎬 TESTANDO OPERAÇÕES DO SISTEMA")
+    print("=" * 60)
+
+    print("\n1️⃣ João tenta alugar B001:")
+    if usuario1.pode_alugar():
+        if bicicleta1.alugar():
+            emprestimo1 = Emprestimo(usuario1, bicicleta1)
+            usuario1.associar_emprestimo(bicicleta1)
+    
+    print("\n2️⃣ Maria tenta alugar B001 (já alugada):")
+    if usuario2.pode_alugar():
+        bicicleta1.alugar()
+    
+    print("\n3️⃣ Tentativa de colocar B001 em manutenção:")
+    bicicleta1.entrar_manutencao()
+    
+    print("\n4️⃣ João devolve B001 (rodou 15km):")
+    if bicicleta1.devolver(15):
+        usuario1.finalizar_emprestimo()
+        emprestimo1.finalizar(15)
+    
+    print("\n5️⃣ Colocar B001 em manutenção:")
+    bicicleta1.entrar_manutencao()
+    
+    print("\n6️⃣ Maria tenta alugar B001 (em manutenção):")
+    if usuario2.pode_alugar():
+        bicicleta1.alugar()
+    
+    print("\n7️⃣ B001 sai da manutenção:")
+    bicicleta1.sair_manutencao()
+    
+    print("\n8️⃣ Maria aluga B001:")
+    if usuario2.pode_alugar():
+        if bicicleta1.alugar():
+            emprestimo2 = Emprestimo(usuario2, bicicleta1)
+            usuario2.associar_emprestimo(bicicleta1)
+    
+    print("\n9️⃣ Carlos (17 anos) tenta alugar B002:")
+    if usuario3.pode_alugar():
+        bicicleta2.alugar()
+    
+    print("\n🔟 Aluguel de B002 por João:")
+    if usuario1.pode_alugar():
+        if bicicleta2.alugar():
+            emprestimo3 = Emprestimo(usuario1, bicicleta2)
+            usuario1.associar_emprestimo(bicicleta2)
+    
+    print("\n1️⃣1️⃣ Devolução da B002 por João (rodou 8km):")
+    if bicicleta2.devolver(8):
+        usuario1.finalizar_emprestimo()
+    
+    print("\n" + "=" * 60)
+    print("📊 INFORMAÇÕES FINAIS DO SISTEMA")
+    print("=" * 60)
+    
+    bicicleta1.exibir_informacoes()
+    bicicleta2.exibir_informacoes()
+    bicicleta3.exibir_informacoes()
+    usuario1.exibir_informacoes()
+    usuario2.exibir_informacoes()
+    usuario3.exibir_informacoes()
+    
+    print("\n" + "=" * 60)
+    print("✅ SISTEMA FINALIZADO COM SUCESSO!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
